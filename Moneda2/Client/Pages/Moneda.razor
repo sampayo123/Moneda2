@@ -1,0 +1,151 @@
+﻿@page  "/monedatest"
+@inject HttpClient http
+
+
+
+<h3>moneda</h3>
+
+@*<select class="form-control dropdown" required @onchange="Teste">
+        <option>--Seleccione--</option>
+        @foreach (var item in ListadatosMoneda)
+        {
+            <option value="@item.CurrencyNativeName">@item.CurrencyNativeName</option>
+        }
+
+    </select>*@
+<EditForm Model="@moneda" Context="contexto">
+    <div>
+
+        <BlazoredTypeahead SearchMethod="BuscarMonedas"
+                           @bind-Value="MonedaSelecciona"
+                           Placeholder="Seleccione moneda..."
+                           Context="context">
+
+            <SelectedTemplate>
+                @context.CurrencyNativeName
+
+            </SelectedTemplate>
+            <ResultTemplate>
+                <div style="font-size:12px;" value="@context.CurrencyNativeName">
+                    <span class="oi oi-person" aria-hidden="true"></span>
+                    @context.CurrencyNativeName
+                </div>
+            </ResultTemplate>
+
+            <NotFoundTemplate>
+                <div style="font-size:14px; color:#515a5a;">
+                    &nbsp; &nbsp;<span class="oi oi-zoom-out" aria-hidden="true"></span>
+                    &nbsp;No se ha encontrado datos en la busqueda....
+                </div>
+
+            </NotFoundTemplate>
+        </BlazoredTypeahead>
+
+        @if (MonedaSelecciona != null)
+        {
+            
+                <div class="row">
+                    <div class="col-lg-4">
+                        Nombre:
+                        <input type="text" @bind="MonedaSelecciona.CurrencyNativeName" class="form-control" />
+                    </div>
+                    <div class="col-lg-4">
+                        Nombre abreviado
+                        <input type="text" @bind="MonedaSelecciona.ISOCurrencySymbol" class="form-control" />
+                    </div>
+                    <div class="col-lg-4">
+                        Simbolo
+                        <input type="text" @bind="MonedaSelecciona.CurrencySymbol" class="form-control" />
+                    </div>
+
+                </div>
+         
+        }
+        else
+        {
+           
+                <div class="row">
+                    <div class="col-lg-4">
+                        Nombre:
+                        <input type="text"  class="form-control" />
+                    </div>
+                    <div class="col-lg-4">
+                        Nombre abreviado
+                        <input type="text" class="form-control" />
+                    </div>
+                    <div class="col-lg-4">
+                        Simbolo
+                        <input type="text" class="form-control" />
+                    </div>
+
+                </div>
+         
+        }
+
+    </div>
+</EditForm>
+
+
+
+@code {
+    CultureInfo[] cultures = CultureInfo.GetCultures(CultureTypes.SpecificCultures);
+    List<RegionInfo> countries = new List<RegionInfo>();
+    List<RegionInfo> ListaMonedas = new List<RegionInfo>();
+
+    TextInfo ti = CultureInfo.CurrentCulture.TextInfo;
+    Regex rx = new Regex("[^a-zA-Z0-9 ]");
+    public class Datos
+    {
+        public string NombreMoneda { get; set; }
+        public string NombreAbreviado { get; set; }
+        public string Simbolo { get; set; }
+    }
+
+    Datos dato = new Datos();
+
+
+
+
+    DatosMoneda MonedaSelecciona;
+    DatosMoneda moneda = new DatosMoneda();
+    List<DatosMoneda> ListadatosMoneda = new List<DatosMoneda>();
+    List<DatosMoneda> ListadatosMonedaActual = new List<DatosMoneda>();
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await PruebaMoneda();
+    }
+
+    async Task PruebaMoneda()
+    {
+
+        ListadatosMoneda = await http.GetFromJsonAsync<List<DatosMoneda>>("api/Monedas");
+
+        ListadatosMoneda.ForEach(item =>
+        {
+
+
+            item.CurrencyNativeName = item.CurrencyNativeName.Normalize(NormalizationForm.FormD);
+
+            item.CurrencyNativeName=rx.Replace(item.CurrencyNativeName,"");
+            item.CurrencyNativeName = ti.ToTitleCase(item.CurrencyNativeName).ToString();
+
+            ListadatosMonedaActual.Add(item);
+
+        });
+
+    }
+
+
+
+    private async Task<IEnumerable<DatosMoneda>> BuscarMonedas(string searchText)
+    {
+
+        return await Task.FromResult(ListadatosMonedaActual.Where(x => x.CurrencyNativeName.ToLower().Contains(searchText.ToLower())).ToList());
+
+
+    }
+
+}
+
